@@ -1,0 +1,61 @@
+﻿@section Scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+
+@{
+    WebSecurity.RequireAuthenticatedUser();
+
+    var db = Database.Open("PhotoGallery");
+
+    var user = db.QuerySingle("SELECT UserId, DisplayName, Bio FROM UserProfiles WHERE UserId = @0", WebSecurity.CurrentUserId);
+
+    Page.Title = "Изменить профиль — " + user.DisplayName;
+
+    Validation.RequireField("displayName", "Введите отображаемое имя");
+
+    string displayName = null;
+    if (IsPost && Validation.IsValid())
+    {
+        displayName = Request["displayName"].Trim();
+        if (displayName.IsEmpty())
+        {
+            displayName = User.Identity.Name;
+        }
+        var bio = Request["bio"].Trim();
+
+        db.Execute("UPDATE UserProfiles SET DisplayName = @0, Bio = @1 WHERE UserId = @2", displayName, bio, WebSecurity.CurrentUserId);
+
+        Response.Redirect(Href("~/User/View",user.UserId));
+    }
+}
+<h1>Изменить профиль</h1>
+
+<section id="profileForm">
+    <header>
+        <p>
+            С возвращением, @user.DisplayName.  Используйте форму ниже, чтобы изменить отображаемое имя (для комментариев)
+            и биографию (для <a href="~/User/View/@WebSecurity.CurrentUserId" title="Просмотр общедоступного профиля">общедоступного профиля</a>).
+        </p>
+    </header>
+
+    <form method="post">
+        <fieldset class="no-legend" action="">
+            <legend>Изменить профиль</legend>
+            <ol>
+                <li>
+                    <label for="displayName">Отображаемое имя:</label>
+                    <input type="text" id="displayName" name="displayName" title="Изменить отображаемое имя" placeholder="Display name" value="@(displayName ?? user.DisplayName)" @Validation.For("displayName") />
+                    @Html.ValidationMessage("displayName")
+                </li>
+                <li>
+                    <label for="bio">Биография:</label>
+                    <textarea id="bio" name="bio" title="Изменить биографию" rows="4" cols="50" placeholder="Biography">@user.Bio</textarea>
+                </li>
+            </ol>
+            <p class="form-actions">
+                <input type="submit" value="Сохранить" title="Сохранить изменения" />
+            </p>
+        </fieldset>
+    </form>
+</section>

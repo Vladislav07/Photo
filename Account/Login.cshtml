@@ -1,0 +1,67 @@
+﻿@section Scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+
+@{
+    Page.Title = "Login";
+
+    Validation.RequireField("email", "Необходимо указать адрес электронной почты.");
+    Validation.RequireField("password", "Необходимо указать пароль.");
+
+    if (IsPost && Validation.IsValid()) 
+    {
+        var email = Request["email"];
+        var password = Request["password"];
+        var rememberMe = Request["rememberMe"].AsBool();
+        
+        if (WebSecurity.Login(email, password, rememberMe)) 
+        {
+            string returnUrl = Request["returnUrl"];
+            if (!returnUrl.IsEmpty()) 
+            {
+                Context.RedirectLocal(returnUrl);
+            } 
+            else
+            {
+                Response.Redirect("~/");
+            }
+        } 
+        else 
+        {
+            ModelState.AddFormError("Указан неправильный адрес электронной почты или пароль.");
+        }
+    }
+}
+<hgroup>
+    <h1>Войти</h1>
+    <h2>Введите ниже свой адрес электронной почты и пароль.</h2>
+</hgroup>
+
+<p>Если у вас нет учетной записи, <a href="~/Account/Register" title="Register">зарегистрируйтесь</a>.</p>
+<form method="post">
+    @Html.ValidationSummary("Войти не удалось. Устраните ошибки и повторите попытку.", excludeFieldErrors: true, htmlAttributes: null)
+
+    <fieldset class="no-legend">
+        <legend>Войти</legend>
+        <ol>
+            <li>
+                <label for="email">Адрес электронной почты</label>
+                <input type="text" name="email" title="Адрес электронной почты" placeholder="Email address" @Validation.For("email")/>
+                @Html.ValidationMessage("email")
+            </li>
+            <li>
+                <label for="password">Пароль</label>
+                <input type="password" name="password" title="Пароль" @Validation.For("password")/>
+                @Html.ValidationMessage("password")
+            </li>
+            <li>
+                <label class="checkbox" for="rememberMe">Запомнить меня</label>
+                <input type="checkbox" name="rememberMe" value="true" title="Запомнить меня" />
+            </li>
+        </ol>
+        <p class="form-actions">
+            <input type="submit" value="Войти" title="Войти" />
+        </p>
+    </fieldset>
+</form>

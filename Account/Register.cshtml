@@ -1,0 +1,97 @@
+﻿@section Scripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+
+@{
+    Page.Title = "Register";
+
+    Validation.RequireField("email", "Необходимо указать адрес электронной почты.");
+    Validation.RequireField("password", "Необходимо указать пароль.");
+    Validation.Add("confirmPassword",
+        Validator.Required("Необходимо указать подтверждение пароля."),
+        Validator.EqualsTo("password", "Новый пароль и его подтверждение не совпадают."));
+
+    //if (!ReCaptcha.Validate("PRIVATE_KEY")) {
+    //    ModelState.AddFormError("Captcha response was not correct.");
+    //}
+        
+    if (IsPost && Validation.IsValid() && ModelState.IsValid) 
+    {
+        // Выполните проверяющие элементы и проверьте наличие ошибок ReCaptcha.
+        var email = Request["email"];
+        var password = Request["password"];
+        var confirmPassword = Request["confirmPassword"];
+
+        // Создайте профиль пользователя
+        var db = Database.Open("PhotoGallery");
+
+        // Проверка наличия пользователя в базе данных
+        var user = db.QuerySingle("SELECT Email FROM UserProfiles WHERE LOWER(Email) = LOWER(@0)", email);
+        if (user == null) 
+        {
+            // Добавление адреса электронной почты в таблицу профиля
+            db.Execute("INSERT INTO UserProfiles (Email, DisplayName, Bio) VALUES (@0, @1, @2)", email, email, "");
+
+            // Создание новой записи в базе данных членства.
+            // Если проверка пройдена, обработка запроса продолжается
+            try 
+            {
+                WebSecurity.CreateAccount(email, password);
+                WebSecurity.Login(email, password);
+                Response.Redirect("~/");
+            }
+            catch (System.Web.Security.MembershipCreateUserException e) 
+            {
+                ModelState.AddFormError(e.ToString());
+            }
+        } 
+        else 
+        {
+            // Пользователь уже существует
+            ModelState.AddFormError("Указанный адрес электронной почты уже используется другим пользователем.");
+        }
+    }
+}
+
+<hgroup>
+    <h1>Создание учетной записи</h1>
+    <h2>Используйте следующую форму для создания новой учетной записи.</h2>
+</hgroup>
+
+<form method="post">
+    @Html.ValidationSummary("Не удалось создать учетную запись. Исправьте ошибки и повторите попытку.", excludeFieldErrors: true, htmlAttributes: null)
+
+    <fieldset class="no-legend">
+        <legend>Создание учетной записи</legend>
+        <ol>
+            <li>
+                <label for="email">Адрес электронной почты:</label>
+                <input type="text" name="email" title="Адрес электронной почты" placeholder="Email address" @Validation.For("email") />
+                @Html.ValidationMessage("email")
+            </li>
+            <li>
+                <label for="password">Пароль:</label>
+                <input type="password" name="password" title="Пароль" @Validation.For("password") />
+                @Html.ValidationMessage("password")
+            </li>
+            <li>
+                <label for="confirmPassword">Подтверждение пароля:</label>
+                <input type="password" name="confirmPassword" title="Подтверждение пароля" @Validation.For("confirmPassword") />
+                @Html.ValidationMessage("confirmPassword")
+            </li>
+            <li>
+                <div class="message info">
+                    <p>Для включения проверки CAPTCHA удалите комментарии для ReCaptcha.GetHtml и замените 'PUBLIC_KEY'
+                    на открытый ключ.  В верхней части этой страницы удалите комментарий для ReCaptcha.Validate и
+                    замените 'PRIVATE_KEY' на закрытый ключ.</p>
+                    <p>Ключи reCAPTCHA можно зарегистрировать на сайте <a href="http://recaptcha.net" title="reCAPTCHA.net">reCAPTCHA.net</a>.</p>
+                </div>
+                @*@ReCaptcha.GetHtml("PUBLIC_KEY", theme: "white")*@
+            </li>
+        </ol>
+        <p class="form-actions">
+            <input type="submit" value="Регистрация" title="Регистрация" />
+        </p>
+    </fieldset>
+</form>

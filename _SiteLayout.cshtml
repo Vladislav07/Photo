@@ -1,0 +1,45 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+    <head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta charset="utf-8" />
+        <title>@Page.Title</title>
+        <link href="~/Content/Site.css" rel="stylesheet" />
+        <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+        <script src="~/Scripts/modernizr-2.6.2.js"></script>
+        <script src="~/Scripts/jquery-1.8.2.min.js"></script>
+    </head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<body>
+        <header id="banner">
+            <p class="site-title"><a href="~/">Photo Gallery</a></p>
+            <nav id="menu">
+                <ul>
+                    <li class="galleries"><a href="~/" title="Galleries">Альбомы</a></li>
+                    <li class="tags"><a href="~/Tag" title="Tags">Теги</a></li>
+                    <li class="account"><a href="~/User" title="Account">Учетная запись</a></li>
+                </ul>
+            </nav>
+            <div id="login">
+                @if (WebSecurity.IsAuthenticated)
+                {
+                    <span>
+                        Здравствуйте <strong>@WebSecurity.CurrentUserName</strong>!
+                        <a href="~/Account/Logout" title="Logout">Выход</a>
+                    </span>
+                }
+                else
+                {
+                    <a href="~/Account/Login" title="Login">Вход</a>
+                }
+            </div>
+        </header>
+        <div id="body">
+            @RenderBody()
+        </div>
+        <footer id="site-footer">
+            &copy; @DateTime.Now.Year - Photo Gallery 
+        </footer>
+        @RenderSection("Scripts", required: false)
+    </body>
+</html>

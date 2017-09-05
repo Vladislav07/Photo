@@ -1,0 +1,46 @@
+﻿@{
+    var photoId = UrlData[0].AsInt();
+
+    var db = Database.Open("PhotoGallery");
+
+    var photo = db.QuerySingle("SELECT * FROM Photos WHERE Id = @0", photoId);
+    if (photo == null) 
+    {
+        Response.SetStatus(HttpStatusCode.NotFound);
+        return;        
+    }
+
+    WebSecurity.RequireUser(photo.UserId);
+
+    Page.Title = "Удалить фото — " + photo.FileTitle;
+
+    if (IsPost) 
+    {
+        //Удалить все теги, связанные с этим изображением
+        db.Execute("DELETE FROM Photos_Tags WHERE Photos_Id = @0", photoId);
+        //Удалить все комментарии, связанные с этим изображением
+        db.Execute("DELETE FROM Comments WHERE PhotoId = @0", photoId);
+        //Удалить изображение
+        db.Execute("DELETE FROM Photos WHERE Id = @0", photoId);
+        Response.Redirect(Href("~/View",photo.GalleryId));
+    }
+}
+
+<h1>Удалить @photo.FileTitle</h1>
+
+<section id="sidebar">
+    <p class="message error"> 
+        Удаление этого фото приведет к безвозвратному удалению файла с сайта фотогалереи 
+        и потере всех сопутствующих данных (описания, тегов и комментариев). Прежде чем продолжить, 
+        стоит загрузить <a href="~/Photo/Full/@photoId" title="Download: @(photo.FileTitle + photo.FileExtension)">полноразмерное фото</a>. 
+    </p>
+
+    <form method="post">
+        <p class="form-actions" data-role="controlgroup" data-type="horizontal">
+            <input type="submit" value="Удалить" title="Удалить фото" />
+            <a data-role="button" href="~/Photo/View/@photoId" title="Do not remove photo">Отмена</a>
+        </p>
+    </form>
+</section>
+
+<img alt="@Html.AttributeEncode(photo.FileTitle)" src="~/Photo/Thumbnail/@photo.Id?size=large" />

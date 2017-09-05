@@ -1,0 +1,72 @@
+﻿@{
+    WebSecurity.RequireAuthenticatedUser();
+
+    var photoId = UrlData[0].AsInt();
+
+    var db = Database.Open("PhotoGallery");
+
+    var photo = db.QuerySingle("SELECT * FROM Photos WHERE Id = @0", photoId);
+    if (photo == null) 
+    {
+        Response.SetStatus(HttpStatusCode.NotFound);
+        return;
+    }
+
+    Page.Title = "Теги фото — " + photo.FileTitle;
+
+    if (IsPost) 
+    {
+        var newTags = Request["newTags"];
+        // подготовить теги для обработки
+        var tagNames = newTags.Split(';');
+
+        //Удалить теги, связанные с этим изображением
+        db.Execute("DELETE FROM Photos_Tags WHERE Photos_Id = @0", photoId);
+        foreach (string tagName in tagNames) 
+        {
+            // получить идентификатор каждого тега, создать его, если он не существует
+            var trimmed = tagName.Trim();
+            bool exists = db.QueryValue("SELECT COUNT(*) FROM Tags WHERE TagName = @0", trimmed) > 0;
+            if (!exists) 
+            {
+    			//Если тег не существует, создать его
+                db.Execute("INSERT INTO Tags (TagName) VALUES (@0)", trimmed);
+            }
+            //Связать изображение и тег
+            db.Execute("INSERT INTO Photos_Tags (Photos_Id, Tags_TagName) VALUES (@0, @1)", photoId, trimmed);
+        }
+        Response.Redirect(Href("View", photo.Id));
+    }
+
+    // получить упорядоченный список всех тегов для этого фото
+    var tags = db.Query("SELECT TagName FROM Tags, Photos_Tags WHERE Tags_TagName = TagName AND Photos_Id = @0 ORDER BY TagName", photoId);
+
+    var tagsList = new List<string>();
+    foreach (var tag in tags) 
+    {
+        tagsList.Add(tag.TagName);
+    }
+    var tagStringToDisplay = String.Join("; ", tagsList.ToArray());
+}
+
+<h1>Изменить теги @photo.FileTitle</h1>
+
+<section id="sidebar">
+    <form method="post">
+        <fieldset class="no-legend">
+            <legend>Изменить теги</legend>
+            <ol>
+                <li>
+                    <label for="newTags">Введите теги, разделенные точкой с запятой:</label>
+                    <textarea id="newTags" name="newTags" title="Введите теги, разделенные точкой с запятой" rows="4" cols="50" placeholder="Enter tags seperated by a semicolon">@tagStringToDisplay</textarea>
+                </li>
+            </ol>
+            <p class="form-actions" data-role="controlgroup" data-type="horizontal">
+                <input type="submit" value="Сохранить изменения" title="Сохранить изменения" />
+                <a data-role="button" href="~/Photo/View/@photoId" title="Do not save changes">Отмена</a>
+            </p>
+        </fieldset>
+    </form>
+</section>
+
+<img alt="@Html.AttributeEncode(photo.FileTitle)" src="~/Photo/Thumbnail/@photo.Id?size=large" />

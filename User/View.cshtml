@@ -1,0 +1,65 @@
+﻿@{
+    var db = Database.Open("PhotoGallery");
+
+    var id = UrlData[0].AsInt();
+    var user = db.QuerySingle("SELECT UserId, DisplayName, Bio FROM UserProfiles WHERE UserId = @0", id);
+    if (user == null)
+    {
+        Response.SetStatus(HttpStatusCode.NotFound);
+        return;
+    }
+
+    Page.Title = "Пользователь — " + user.DisplayName;
+
+    var photos = db.Query("SELECT Id, FileTitle FROM Photos WHERE UserId = @0 ORDER BY FileTitle", id).ToList();
+}
+
+<section id="sidebar">
+    <h1>@user.DisplayName</h1>
+    <dl>
+        <dt>Биография</dt>
+        <dd>
+            @if (user.Bio != "") {
+                <text>@user.Bio</text>
+            } else {
+                <text>Этот пользователь не создал биографию.</text>
+            } 
+        </dd>
+    </dl>
+    <footer>
+    @if (WebSecurity.CurrentUserId == user.UserId)
+    {
+        <p>
+            При желании вы можете <a href="~/User" title="edit your profile">изменить свой профиль</a>.
+        </p>
+    }
+    </footer>
+</section>
+
+<section id="photo">
+    <hgroup>
+        <h1>Фото @(user.DisplayName)'</h1>
+        @if (photos.Count == 1)
+        {
+            <h2>Этот пользователь загрузил одно фото.</h2>
+        }
+        else
+        {
+            <h2>Этот пользователь загрузил @photos.Count фото.</h2>
+        }
+    </hgroup>
+
+    <ul class="thumbnails user-photos" data-role="listview">
+        @foreach (var photo in photos)
+        {
+            <li>
+                <a href="~/Photo/View/@photo.Id" title="@photo.FileTitle">
+                    <img alt="эскиз @photo.FileTitle" src="~/Photo/Thumbnail/@photo.Id" class="thumbnail-border" />
+                    <aside class="image-overlay">@photo.FileTitle</aside>
+                    <span class="image-overlay hide-from-mobile">@photo.FileTitle</span>
+                    <span class="below-image hide-from-desktop">@photo.FileTitle</span>
+                </a>
+            </li>
+        }
+    </ul>
+</section>
