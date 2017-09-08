@@ -1,5 +1,5 @@
 ﻿@{
-    Page.Title = "Photo Gallery";
+    Page.Title = "MyPhoto Gallery";
 
     var db = Database.Open("PhotoGallery");
     var galleries = db.Query(@"SELECT Galleries.Id, Galleries.Name, COUNT(Photos.Id) AS PhotoCount
